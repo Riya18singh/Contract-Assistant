@@ -2,6 +2,7 @@ import re
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import chromadb
 
 
 # Open the PDF file
@@ -56,29 +57,57 @@ print(chunk_embeddings[1][:10])
 
 
 
-def cosine_similarity(a, b):
-    """Measure how similar two embeddings are. Returns a score from -1 to 1 (higher = more similar)."""
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+# def cosine_similarity(a, b):
+#     """Measure how similar two embeddings are. Returns a score from -1 to 1 (higher = more similar)."""
+#     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-# A real question to test
+# # A real question to test
+# question = "What happens if I share confidential information without permission?"
+
+# # Convert the question into an embedding, the same way we did for chunks
+# question_embedding = model.encode(question)
+
+# # Compare the question against every chunk, and store the similarity scores
+# scores = []
+# for i, chunk_embedding in enumerate(chunk_embeddings):
+#     score = cosine_similarity(question_embedding, chunk_embedding)
+#     scores.append((score, i))
+
+# # Sort so the highest similarity score comes first
+# scores.sort(reverse=True)
+
+# print(f"\nQuestion: {question}")
+# print("\n--- Top 3 most relevant chunks ---")
+# for score, i in scores[:3]:
+#     print(f"\nScore: {score:.4f} (Chunk {i})")
+#     print(chunks[i][:200])
+
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma_client.get_or_create_collection(name="contract_clauses")
+
+# Give Chroma both the text AND the embeddings we already calculated using MiniLM
+collection.add(
+    documents=chunks,
+    embeddings=chunk_embeddings.tolist(),
+    ids=[f"chunk_{i}" for i in range(len(chunks))]
+)
+
+print(f"\nAdded {collection.count()} chunks to Chroma")
+
 question = "What happens if I share confidential information without permission?"
+question_embedding_for_chroma = model.encode([question]).tolist()
 
-# Convert the question into an embedding, the same way we did for chunks
-question_embedding = model.encode(question)
-
-# Compare the question against every chunk, and store the similarity scores
-scores = []
-for i, chunk_embedding in enumerate(chunk_embeddings):
-    score = cosine_similarity(question_embedding, chunk_embedding)
-    scores.append((score, i))
-
-# Sort so the highest similarity score comes first
-scores.sort(reverse=True)
+results = collection.query(
+    query_embeddings=question_embedding_for_chroma,
+    n_results=3
+)
 
 print(f"\nQuestion: {question}")
-print("\n--- Top 3 most relevant chunks ---")
-for score, i in scores[:3]:
-    print(f"\nScore: {score:.4f} (Chunk {i})")
-    print(chunks[i][:200])
+print("\n--- Top 3 results from Chroma ---")
+for i, doc in enumerate(results['documents'][0]):
+    distance = results['distances'][0][i]
+    print(f"\nDistance: {distance:.4f}")
+    print(doc[:200])
+
     
