@@ -3,6 +3,9 @@ from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import chromadb
+import os
+from dotenv import load_dotenv
+from google import genai
 
 
 # Open the PDF file
@@ -109,5 +112,29 @@ for i, doc in enumerate(results['documents'][0]):
     distance = results['distances'][0][i]
     print(f"\nDistance: {distance:.4f}")
     print(doc[:200])
+
+
+load_dotenv()
+api_key = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
+
+top_clause = results['documents'][0][0]
+
+prompt = f"""You are a helpful legal assistant. Based ONLY on the contract clause below, answer the user's question in simple, clear language.
+
+Contract clause:
+{top_clause}
+
+Question: {question}
+
+Answer:"""
+
+response = client.models.generate_content(
+    model="gemini-flash-latest",
+    contents=prompt
+)
+
+print("\n--- AI's Answer ---\n")
+print(response.text)
 
     
