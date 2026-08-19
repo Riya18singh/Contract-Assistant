@@ -59,7 +59,6 @@ def process_contract(file_path, contract_id):
 
     return len(chunks)
 
-
 def ask_question(question, contract_id):
     collection = _chroma_client.get_or_create_collection(name="contract_clauses")
 
@@ -72,7 +71,10 @@ def ask_question(question, contract_id):
     )
 
     if not results['documents'][0]:
-        return "I couldn't find any relevant clause in this contract to answer that question."
+        return {
+            "answer": "I couldn't find any relevant clause in this contract to answer that question.",
+            "source": None,
+        }
 
     top_clause = results['documents'][0][0]
 
@@ -92,11 +94,14 @@ Answer:"""
                 model="gemini-3.5-flash-lite",
                 contents=prompt
             )
-            return response.text
+            return {"answer": response.text, "source": top_clause}
         except Exception as e:
             print(f"\n--- GEMINI ERROR (attempt {attempt + 1}) ---")
-            print(e)    
+            print(e)
             if attempt < max_attempts - 1:
-                time.sleep(2)
+                time.sleep(4 * (attempt + 1))
                 continue
-            return "Sorry, the AI service is temporarily unavailable. Please try asking your question again in a moment."
+            return {
+                "answer": "Sorry, the AI service is temporarily unavailable. Please try asking your question again in a moment.",
+                "source": None,
+            }

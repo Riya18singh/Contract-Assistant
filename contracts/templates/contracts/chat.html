@@ -126,13 +126,21 @@
     </header>
 
     <div class="chat-area">
-        {% if question %}
-            <div class="message user">
-                <div class="bubble">{{ question }}</div>
-            </div>
-            <div class="message ai">
-                <div class="bubble">{{ answer }}</div>
-            </div>
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="message user">
+                    <div class="bubble">{{ msg.question }}</div>
+                </div>
+                <div class="message ai">
+                    <div class="bubble">{{ msg.answer }}</div>
+                    {% if msg.source %}
+                        <details style="margin-top: 8px; font-size: 12px; color: #8a8a9a; max-width: 75%;">
+                            <summary style="cursor: pointer;">View source clause</summary>
+                            <p style="margin-top: 6px; padding: 8px; background: #f0f0f5; border-radius: 8px;">{{ msg.source }}</p>
+                        </details>
+                    {% endif %}
+                </div>
+            {% endfor %}
         {% else %}
             <div class="empty-state">No questions yet — ask something below to get started.</div>
         {% endif %}

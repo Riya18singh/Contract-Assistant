@@ -10,4 +10,18 @@ class Contract(models.Model):
 
     def __str__(self):
         return self.title
+
+class ChatMessage(models.Model):
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name='messages')
+    question = models.TextField()
+    answer = models.TextField()
+    source = models.TextField(blank=True, null=True)
+    asked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['asked_at']
+
+    def __str__(self):
+        return f"{self.question[:50]}"
+        
         

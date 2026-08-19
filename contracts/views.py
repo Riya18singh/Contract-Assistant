@@ -1,10 +1,8 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import ContractUploadForm
-from .rag_utils import process_contract
-from django.shortcuts import get_object_or_404
-from .models import Contract
-from .rag_utils import ask_question
+from .models import Contract,ChatMessage
+from .rag_utils import process_contract, ask_question
 
 
 @login_required
@@ -28,15 +26,24 @@ def upload_contract(request):
 @login_required
 def chat_with_contract(request, contract_id):
     contract = get_object_or_404(Contract, id=contract_id, owner=request.user)
-    answer = None
-    question = None
 
     if request.method == 'POST':
         question = request.POST.get('question')
-        answer = ask_question(question, contract_id)
+        result = ask_question(question, contract_id)
+
+        ChatMessage.objects.create(
+            contract=contract,
+            question=question,
+            answer=result['answer'],
+            source=result['source'],
+        )
+
+        return redirect('chat', contract_id=contract.id)
+
+    messages = contract.messages.all()
 
     return render(request, 'contracts/chat.html', {
         'contract': contract,
-        'question': question,
-        'answer': answer,
+        'messages': messages,
     })
+    
