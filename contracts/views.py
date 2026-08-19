@@ -46,4 +46,8 @@ def chat_with_contract(request, contract_id):
         'contract': contract,
         'messages': messages,
     })
-    
+@login_required
+def contract_list(request):
+    contracts = Contract.objects.filter(owner=request.user).order_by('-uploaded_at')
+    return render(request, 'contracts/list.html', {'contracts': contracts})
+        
